@@ -1,0 +1,259 @@
+<html>
+<head>
+    <title>Puter.js Chat & Video Generator</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+        .tab-btn {
+            padding: 12px 24px;
+            background-color: #e9ecef;
+            border: none;
+            border-radius: 5px 5px 0 0;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            background-color: #007bff;
+            color: white;
+        }
+        .tab-btn:hover {
+            background-color: #0056b3;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+            background-color: white;
+            border-radius: 0 5px 5px 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .tab-content.active {
+            display: block;
+        }
+        #output, #videoOutput { 
+            margin-top: 20px; 
+            padding: 15px; 
+            border: 1px solid #ccc; 
+            min-height: 200px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            word-wrap: break-word;
+        }
+        #videoOutput {
+            text-align: center;
+        }
+        #videoOutput video {
+            max-width: 100%;
+            max-height: 500px;
+            margin-top: 15px;
+            border-radius: 5px;
+        }
+        .input-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        input, textarea {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+        .video-info {
+            background-color: #e7f3ff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Puter.js Chat & Video Generator</h1>
+    
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('chat')">💬 Chat</button>
+        <button class="tab-btn" onclick="switchTab('video')">🎬 Generate Video</button>
+    </div>
+
+    <!-- Chat Tab -->
+    <div id="chat" class="tab-content active">
+        <div id="output">Ready to chat...</div>
+        
+        <div class="input-container">
+            <input 
+                type="text" 
+                id="userInput" 
+                placeholder="Ask me anything..." 
+                onkeypress="handleKeyPress(event)"
+            >
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <!-- Video Generation Tab -->
+    <div id="video" class="tab-content">
+        <div id="videoOutput">Ready to generate video...</div>
+        
+        <div class="input-container">
+            <textarea 
+                id="videoPrompt" 
+                placeholder="Describe the video you want to generate (e.g., 'A cat dancing in the rain')..."
+            ></textarea>
+        </div>
+        
+        <div class="input-container">
+            <button onclick="generateVideo()" style="flex: 1;">🎬 Generate Video</button>
+        </div>
+        
+        <div class="video-info">
+            <strong>ℹ️ Note:</strong> Video generation using Google/Veo-3.1-lite may take a minute or more. Please be patient!
+        </div>
+    </div>
+
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all tab buttons
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            tabBtns.forEach(btn => btn.classList.remove('active'));
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
+
+        // Chat functionality
+        async function sendMessage() {
+            const userInput = document.getElementById('userInput');
+            const question = userInput.value.trim();
+            
+            if (!question) return;
+            
+            const outputDiv = document.getElementById('output');
+            outputDiv.innerHTML = `<span class="loading">Loading response for: "${question}"</span>`;
+            
+            userInput.value = '';
+            
+            try {
+                const response = await puter.ai.chat(question, {
+                    model: 'gpt-5.4-nano',
+                });
+                outputDiv.innerHTML = response;
+            } catch (error) {
+                outputDiv.innerHTML = `<span class="error">Error: ${error.message}</span>`;
+            }
+        }
+        
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Video generation functionality
+        async function generateVideo() {
+            const videoPrompt = document.getElementById('videoPrompt');
+            const prompt = videoPrompt.value.trim();
+            
+            if (!prompt) {
+                alert('Please enter a video prompt');
+                return;
+            }
+            
+            const videoOutputDiv = document.getElementById('videoOutput');
+            videoOutputDiv.innerHTML = `<span class="loading">🎬 Generating video for: "${prompt}"<br><br>This may take a minute or more...</span>`;
+            
+            try {
+                const response = await puter.ai.generateVideo(prompt, {
+                    model: 'google/veo-3.1-lite',
+                });
+                
+                // Check if response is a video URL or video data
+                if (response.video_url || response.url) {
+                    const videoUrl = response.video_url || response.url;
+                    videoOutputDiv.innerHTML = `
+                        <span class="success">✅ Video generated successfully!</span>
+                        <video controls>
+                            <source src="${videoUrl}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    `;
+                } else if (typeof response === 'string' && response.startsWith('data:') || response.startsWith('http')) {
+                    videoOutputDiv.innerHTML = `
+                        <span class="success">✅ Video generated successfully!</span>
+                        <video controls>
+                            <source src="${response}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    `;
+                } else {
+                    videoOutputDiv.innerHTML = `
+                        <span class="success">✅ Video generated successfully!</span>
+                        <pre>${JSON.stringify(response, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                videoOutputDiv.innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
